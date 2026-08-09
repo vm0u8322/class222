@@ -616,7 +616,7 @@ async def gemini_generate_content(mime_type: str, data: bytes, prompt: str) -> s
             }
         ]
     }
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={GEMINI_API_KEY}"
     async with httpx.AsyncClient(timeout=httpx.Timeout(90.0)) as client:
         resp = await client.post(url, json=payload)
         if resp.status_code != 200:
@@ -692,7 +692,6 @@ async def extract_text(file: UploadFile = File(...)) -> Dict[str, Any]:
     return {"text": text[:12000]}
 
 
-@app.post("/api/parse-events")
 async def gemini_json(prompt: str) -> Any:
     if not GEMINI_API_KEY:
         raise ValueError("GEMINI_API_KEY not configured")
@@ -710,7 +709,7 @@ async def gemini_json(prompt: str) -> Any:
             "responseMimeType": "application/json"
         }
     }
-    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
+    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={GEMINI_API_KEY}"
     async with httpx.AsyncClient(timeout=httpx.Timeout(40.0)) as client:
         resp = await client.post(url, json=payload)
         if resp.status_code != 200:
@@ -719,6 +718,7 @@ async def gemini_json(prompt: str) -> Any:
         text = result.get("candidates", [{}])[0].get("content", {}).get("parts", [{}])[0].get("text", "")
         return extract_json_payload(text)
 
+@app.post("/api/parse-events")
 async def parse_events(request: ParseEventsRequest) -> Dict[str, Any]:
     source = (request.text or "").strip()
     if not source:
