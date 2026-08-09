@@ -207,12 +207,35 @@ const text = (key) => i18n[state.lang]?.[key] || i18n.en?.[key] || i18n.zh[key] 
 
 function save() {
   state.updatedAt = Date.now();
-  localStorage.setItem(STORAGE_KEY, JSON.stringify({
+  const cleanFiles = (state.files || []).map(({ sourceFile, objectUrl, ...file }) => file);
+  const payload = {
     ...state,
-    messages: state.messages.slice(-20),
-    files: state.files.map(({ sourceFile, objectUrl, ...file }) => file),
-  }));
-  localStorage.setItem(LANG_KEY, state.lang);
+    messages: (state.messages || []).slice(-20),
+    files: cleanFiles,
+  };
+
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
+  } catch (err) {
+    console.warn("localStorage quota exceeded, slimming file previews to save state:", err);
+    try {
+      const slimFiles = cleanFiles.map((f, idx) => 
+        idx >= cleanFiles.length - 3 ? f : { ...f, previewData: "" }
+      );
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        ...payload,
+        messages: (state.messages || []).slice(-10),
+        files: slimFiles,
+      }));
+    } catch (e) {
+      console.error("Critical localStorage quota error:", e);
+    }
+  }
+
+  try {
+    localStorage.setItem(LANG_KEY, state.lang);
+  } catch {}
+
   syncToServer();
 }
 
@@ -379,24 +402,39 @@ function renderSchedule() {
   for (const day of weekDays) {
     const lane = timeline.querySelector(`.day-lane[data-day="${day}"]`);
     if (!lane) continue;
-    layoutOverlaps(mergeContiguousCourses(timed).filter(e => e.day === day)).forEach(({ event, laneIndex, laneCount }) => {
+    layoutOverlaps(mergeContiguousCourses(timed).filter(e => e.day === day), day).forEach(({ event, laneIndex, laneCount, groupId }) => {
       const top    = ((event.startMin - startMin) / total) * 100;
       const height = ((event.endMin - event.startMin) / total) * 100;
       const width  = 100 / laneCount;
       const block  = document.createElement("button");
       block.className = `course-block compact ${event.type || "class"} ${cardKind(event)}-card`;
-      if (laneCount > 1) block.classList.add("overlap");
+      
+      block.setAttribute("data-group", groupId);
+      block.setAttribute("data-lane-index", laneIndex);
+      block.setAttribute("data-lane-count", laneCount);
+
+      if (laneCount > 1) {
+        block.classList.add("overlap");
+        const defaultRank = laneCount - 1 - laneIndex;
+        block.setAttribute("data-stack-rank", String(defaultRank));
+        if (defaultRank === 0) {
+          block.classList.add("focused-overlap");
+        } else {
+          block.classList.add("stacked-overlap");
+        }
+      }
       if (event.endMin - event.startMin <= 60) block.classList.add("short");
       block.style.top    = `${top}%`;
       block.style.height = `${Math.max(9, height)}%`;
+      
       if (laneCount > 1) {
-        block.style.left   = `${4 + laneIndex * 7}px`;
-        block.style.right  = `${4 + (laneCount - laneIndex - 1) * 7}px`;
-        block.style.zIndex = String(10 + laneIndex);
+        block.style.left   = "4px";
+        block.style.right  = "4px";
       } else {
         block.style.left  = `calc(${laneIndex * width}% + 4px)`;
         block.style.right = `calc(${100 - (laneIndex + 1) * width}% + 4px)`;
       }
+
       let quizBadge = "";
       if (event.type === "class") {
         const titleKey = compactText(event.title || "");
@@ -414,13 +452,43 @@ function renderSchedule() {
       block.style.background = cardKindColor(event);
       block.title   = `${event.title}・${cardKindLabel(event)}・${event.start}-${event.end}${event.room ? `・${event.room}` : ""}`;
       block.innerHTML = `<strong>${escapeHtml(event.title)}</strong><span>${event.start}-${event.end}${event.room ? `<br>${escapeHtml(event.room)}` : ""}</span><em>${cardKindLabel(event)}</em>${quizBadge}`;
-      block.addEventListener("click", () => openScheduleCard(event));
+      
+      block.addEventListener("click", (e) => {
+        const currentRank = block.getAttribute("data-stack-rank");
+        if (laneCount > 1 && currentRank !== "0") {
+          e.preventDefault();
+          e.stopPropagation();
+          updateOverlapStackRanks(lane, groupId, block);
+        } else {
+          openScheduleCard(event);
+        }
+      });
       lane.appendChild(block);
     });
   }
 }
 
-function layoutOverlaps(events) {
+function updateOverlapStackRanks(lane, groupId, focusedBlock) {
+  const siblings = Array.from(lane.querySelectorAll(`.course-block[data-group="${groupId}"]`));
+  if (!siblings.length) return;
+
+  focusedBlock.setAttribute("data-stack-rank", "0");
+  focusedBlock.classList.remove("stacked-overlap");
+  focusedBlock.classList.add("focused-overlap");
+
+  let currentRank = 1;
+  siblings
+    .filter((s) => s !== focusedBlock)
+    .sort((a, b) => Number(b.dataset.laneIndex || 0) - Number(a.dataset.laneIndex || 0))
+    .forEach((sibling) => {
+      sibling.setAttribute("data-stack-rank", String(currentRank));
+      sibling.classList.remove("focused-overlap");
+      sibling.classList.add("stacked-overlap");
+      currentRank++;
+    });
+}
+
+function layoutOverlaps(events, dayLabel = "x") {
   const sorted = [...events].sort((a, b) => a.startMin - b.startMin || b.endMin - a.endMin);
   const groups = [];
   let current = [];
@@ -438,7 +506,10 @@ function layoutOverlaps(events) {
   });
   if (current.length) groups.push(current);
 
+  let groupCounter = 0;
   return groups.flatMap((group) => {
+    groupCounter++;
+    const groupId = `overlap-${dayLabel}-${groupCounter}`;
     const columns = [];
     const placed = group.map((event) => {
       let columnIndex = columns.findIndex((end) => end <= event.startMin);
@@ -448,7 +519,7 @@ function layoutOverlaps(events) {
       } else {
         columns[columnIndex] = event.endMin;
       }
-      return { event, laneIndex: columnIndex, laneCount: 1 };
+      return { event, laneIndex: columnIndex, laneCount: 1, groupId };
     });
     placed.forEach((item) => {
       item.laneCount = columns.length;
@@ -1094,8 +1165,46 @@ function classifyFile(file) {
 
 function readImageDataUrl(file) {
   return new Promise((resolve) => {
+    if (!file || !file.type?.startsWith("image/")) {
+      resolve("");
+      return;
+    }
     const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result || ""));
+    reader.onload = (e) => {
+      const dataUrl = String(e.target.result || "");
+      const img = new Image();
+      img.onload = () => {
+        try {
+          const maxWidth = 300;
+          const maxHeight = 300;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > height) {
+            if (width > maxWidth) {
+              height = Math.round((height * maxWidth) / width);
+              width = maxWidth;
+            }
+          } else {
+            if (height > maxHeight) {
+              width = Math.round((width * maxHeight) / height);
+              height = maxHeight;
+            }
+          }
+
+          const canvas = document.createElement("canvas");
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext("2d");
+          ctx.drawImage(img, 0, 0, width, height);
+          resolve(canvas.toDataURL("image/jpeg", 0.6));
+        } catch {
+          resolve(dataUrl.slice(0, 100000));
+        }
+      };
+      img.onerror = () => resolve(dataUrl.slice(0, 100000));
+      img.src = dataUrl;
+    };
     reader.onerror = () => resolve("");
     reader.readAsDataURL(file);
   });
@@ -1176,6 +1285,11 @@ function openPreview(fileId) {
   modal.classList.remove("hidden");
   resetZoom();
   initImageZoomAndPan();
+}
+
+function closePreviewModal() {
+  const modal = $("#previewModal");
+  if (modal) modal.classList.add("hidden");
 }
 
 async function sendChat(question) {
@@ -1815,6 +1929,14 @@ function wireEvents() {
   $("#confirmInfo")?.addEventListener("click", () => $("#infoModal")?.classList.add("hidden"));
   $("#infoModal")?.addEventListener("click", (event) => {
     if (event.target === $("#infoModal")) $("#infoModal").classList.add("hidden");
+  });
+  $("#previewClose")?.addEventListener("click", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    closePreviewModal();
+  });
+  $("#previewModal")?.addEventListener("click", (event) => {
+    if (event.target === $("#previewModal")) closePreviewModal();
   });
   $("#closeImportSchedule")?.addEventListener("click", closeImportScheduleModal);
   $("#confirmImportSchedule")?.addEventListener("click", async () => {
@@ -2885,15 +3007,15 @@ function repairUploadEntrypoints() {
   };
 
   const openLibrary = (event) => {
-    event.preventDefault();
     event.stopPropagation();
     libraryInput.value = "";
     libraryInput.click();
   };
   const openCourse = (event) => {
-    event.preventDefault();
     event.stopPropagation();
     courseInput.value = "";
+    courseInput.click();
+  };
     courseInput.click();
   };
 
