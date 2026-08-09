@@ -3016,8 +3016,6 @@ function repairUploadEntrypoints() {
     courseInput.value = "";
     courseInput.click();
   };
-    courseInput.click();
-  };
 
   ["#libraryUploadHome", "#libraryDropZone"].forEach((selector) => {
     const node = replaceNodeWithoutListeners(selector);
