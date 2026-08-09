@@ -1,0 +1,352 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
+  <title>課以嗎 ClassOK | AI 學習知識管理平台</title>
+  <meta name="description" content="課以嗎 ClassOK 是課表驅動的 AI 學習知識管理平台。" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <link rel="stylesheet" href="styles.css?v=4" />
+</head>
+<body>
+  <section class="login-screen hidden" id="loginScreen" aria-label="ClassOK login">
+    <div class="login-card">
+      <img class="login-logo" src="assets/logo-vertical.svg" alt="課以嗎 ClassOK" />
+      <div>
+        <p class="eyebrow">ClassOK Account</p>
+        <h1>登入課以嗎</h1>
+        <p>同步你的課程卡片、檔案庫、AI 記憶與考試提醒。</p>
+      </div>
+      <div class="login-actions">
+        <button class="login-button google" id="googleLogin" type="button">
+          <span><i class="fa-brands fa-google"></i></span>
+          <strong>使用 Google 登入</strong>
+        </button>
+        <button class="login-button line" id="lineLogin" type="button">
+          <span><i class="fa-brands fa-line"></i></span>
+          <strong>使用 LINE 登入</strong>
+        </button>
+      </div>
+      <small id="loginHint">需要在 .env 設定 Google / LINE OAuth 金鑰。</small>
+    </div>
+  </section>
+  <div class="splash" id="splash">
+    <img class="splash-logo" src="assets/logo-vertical-white.svg" alt="課以嗎 ClassOK" />
+    <p>課表驅動的 AI 學習知識管理平台</p>
+  </div>
+
+  <div class="phone-shell">
+    <header class="topbar">
+      <button class="brand" data-view-target="home" aria-label="ClassOK home">
+        <img src="assets/logoword.svg" alt="課以嗎 ClassOK" />
+      </button>
+      <div class="top-actions">
+        <button class="icon-button" id="langButton" aria-label="Change language" title="Language">
+          <i class="fa-solid fa-globe"></i>
+        </button>
+        <div class="lang-menu hidden" id="langMenu" role="menu">
+          <button data-lang="zh">繁體中文</button>
+          <button data-lang="en">English</button>
+          <button data-lang="ko">한국어</button>
+          <button data-lang="ja">日本語</button>
+          <button data-lang="es">Español</button>
+          <button data-lang="fr">Français</button>
+          <button data-lang="de">Deutsch</button>
+        </div>
+        <button class="icon-button" id="resetButton" aria-label="Reset data" title="Reset">
+          <i class="fa-solid fa-rotate-left"></i>
+        </button>
+      </div>
+    </header>
+
+    <main class="app-main">
+      <section class="view active" id="view-home">
+        <div class="dashboard-hero">
+          <img class="home-logo" src="assets/logo.svg" alt="ClassOK" />
+          <div>
+            <p class="eyebrow">今日儀表板</p>
+            <h1 data-i18n="positioning">嗨，Shelly 👋</h1>
+            <p class="hero-sub" data-i18n="heroTitle">今天準備開始學習了嗎？</p>
+            <p class="dashboard-note" data-i18n="heroSubtitle">ClassOK 已為你整理今日課程與學習資料</p>
+          </div>
+        </div>
+
+        <div class="stats-grid">
+          <div class="stat"><i class="fa-regular fa-calendar-check"></i><strong id="courseCount">0</strong><span data-i18n="courses">今日課程</span></div>
+          <div class="stat"><i class="fa-regular fa-file-lines"></i><strong id="fileCount">0</strong><span data-i18n="files">學習資料</span></div>
+          <div class="stat"><i class="fa-regular fa-clipboard"></i><strong id="nextCount">0</strong><span data-i18n="upcoming">待複習考試</span></div>
+        </div>
+
+        <article class="ai-card ai-suggestion-card">
+          <div class="card-head">
+            <span class="ai-mark"><i class="fa-solid fa-wand-magic-sparkles"></i></span>
+            <div>
+              <p class="card-kicker">ClassOK AI</p>
+              <h2 id="insightTitle">資料庫管理期中考剩 7 天</h2>
+            </div>
+            <span class="thinking" aria-label="AI thinking"><i></i><i></i><i></i></span>
+          </div>
+          <p id="insightText">建議複習：Trigger、Procedure、View，並把講義與筆記整理到課程卡片。</p>
+          <div class="split-actions">
+            <button class="soft-button" data-view-target="schedule"><i class="fa-regular fa-calendar"></i><span data-i18n="openSchedule">查看課程</span></button>
+            <button class="primary-button" data-view-target="chat"><i class="fa-regular fa-comment-dots"></i><span data-i18n="askAI">問 AI</span></button>
+          </div>
+        </article>
+
+        <div class="section-row">
+          <h2 data-i18n="todayFocus">今日課程</h2>
+        </div>
+        <div class="focus-list" id="todayList"></div>
+
+        <div class="section-row">
+          <h2 data-i18n="quickActions">快速加入</h2>
+        </div>
+        <div class="quick-grid">
+          <button class="quick-action primary" id="openImportHome"><i class="fa-solid fa-keyboard"></i><span data-i18n="importText">文字匯入</span></button>
+          <label class="quick-action" id="libraryUploadHome" for="libraryFileInput" role="button" tabindex="0"><i class="fa-solid fa-folder-plus"></i><span data-i18n="uploadAll">一鍵丟檔</span></label>
+          <button class="quick-action" data-view-target="library"><i class="fa-regular fa-folder-open"></i><span data-i18n="library">檔案庫</span></button>
+        </div>
+      </section>
+
+      <section class="view" id="view-schedule">
+        <div class="panel-title" style="flex-direction: column; align-items: stretch; gap: 10px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+            <div>
+              <p class="eyebrow" data-i18n="smartSchedule">課程中樞</p>
+              <div class="title-inline">
+                <h1 data-i18n="scheduleTitle">課程與時間表</h1>
+                <button class="info-button" id="scheduleInfoButton" aria-label="時間表說明"><i class="fa-solid fa-info"></i></button>
+              </div>
+            </div>
+          </div>
+          <div class="split-actions" style="display: flex; gap: 8px; width: 100%; margin-top: 5px;">
+            <button class="primary-button compact" id="openImportSchedule" style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 5px; font-size: 13px; font-weight: bold; background: var(--accent-color, #1463ff); color: #fff; padding: 10px; border-radius: 8px; border: none; cursor: pointer;"><i class="fa-solid fa-calendar-days"></i>匯入學期課表</button>
+            <button class="primary-button compact" id="openImportEvents" style="flex: 1; display: flex; align-items: center; justify-content: center; gap: 5px; font-size: 13px; font-weight: bold; background: var(--secondary-color, #17bdb8); color: #fff; padding: 10px; border-radius: 8px; border: none; cursor: pointer;"><i class="fa-solid fa-circle-plus"></i>匯入單次事件</button>
+          </div>
+        </div>
+
+        <div class="calendar-tabs" style="display: flex; background: var(--bg-card-header, #f5f5f5); border: 1px solid var(--border-color, #e0e0e0); padding: 4px; border-radius: 10px; margin-bottom: 15px; width: 100%; box-sizing: border-box;">
+          <button class="tab-btn active" data-calendar-view="month" style="flex: 1; padding: 8px; border: none; border-radius: 8px; font-weight: bold; font-size: 13px; cursor: pointer; transition: all 0.2s; background: var(--bg-card, #fff); color: var(--accent-color, #1463ff); box-shadow: 0 2px 5px rgba(0,0,0,0.05);">月曆</button>
+          <button class="tab-btn" data-calendar-view="week" style="flex: 1; padding: 8px; border: none; border-radius: 8px; font-weight: bold; font-size: 13px; cursor: pointer; transition: all 0.2s; background: transparent; color: var(--text-secondary, #666);">週課表</button>
+          <button class="tab-btn" data-calendar-view="day" style="flex: 1; padding: 8px; border: none; border-radius: 8px; font-weight: bold; font-size: 13px; cursor: pointer; transition: all 0.2s; background: transparent; color: var(--text-secondary, #666);">今日</button>
+        </div>
+
+        <div class="schedule-card" style="margin-bottom: 20px;">
+          <div class="schedule-empty" id="scheduleEmpty">
+            <img src="assets/logo.svg" alt="" />
+            <h2 data-i18n="emptyScheduleTitle">還沒有課程卡片</h2>
+            <p data-i18n="emptyScheduleText">貼上課表、考試、聚餐或比賽，ClassOK 會自動整理成課程卡片與事件卡片。</p>
+          </div>
+          <div class="timeline" id="timeline"></div>
+        </div>
+
+        <section class="term-calendar-card">
+          <div class="calendar-bar">
+            <button id="prevMonth" class="mini-icon" type="button" aria-label="Previous month"><i class="fa-solid fa-chevron-left"></i></button>
+            <strong id="calendarTitle">Month</strong>
+            <button id="nextMonth" class="mini-icon" type="button" aria-label="Next month"><i class="fa-solid fa-chevron-right"></i></button>
+          </div>
+          <div class="month-calendar" id="monthCalendar"></div>
+          <div class="calendar-day-list" id="calendarDayList"></div>
+        </section>
+
+        <div class="daily-card hidden" id="dailyViewCard" style="background: var(--bg-card, #fff); border: 1px solid var(--border-color, #e0e0e0); border-radius: 12px; padding: 16px; width: 100%; box-sizing: border-box; display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color, #e0e0e0); padding-bottom: 10px; margin-bottom: 5px;">
+            <strong id="dailyViewTitle" style="font-size: 16px; font-weight: bold; color: var(--text-color, #000);">2026/08/08 星期六</strong>
+            <span style="font-size: 12px; color: var(--text-secondary, #666); background: var(--bg-card-header, #f5f5f5); padding: 4px 8px; border-radius: 6px; font-weight: bold;" id="dailyViewCount">0 個項目</span>
+          </div>
+          <div id="dailyViewList" style="display: flex; flex-direction: column; gap: 10px;"></div>
+        </div>
+      </section>
+
+      <section class="view" id="view-course">
+        <div class="detail-top">
+          <button class="back-button" data-view-target="schedule"><i class="fa-solid fa-chevron-left"></i><span data-i18n="back">返回</span></button>
+          <h1 id="courseTitle">Course</h1>
+        </div>
+
+        <article class="ai-card course-insight">
+          <div class="card-head">
+            <span class="ai-mark"><i class="fa-solid fa-brain"></i></span>
+            <div>
+              <p class="card-kicker">AI Memory</p>
+              <h2 data-i18n="memoryTitle">課程 AI 記憶</h2>
+            </div>
+          </div>
+          <p id="courseInsight">這門課的講義、PDF、照片、錄音、逐字稿與 AI 摘要都會集中在這裡。</p>
+          <div class="meter"><span id="memoryMeter"></span></div>
+        </article>
+
+        <label class="course-upload-btn" id="courseUploadZone" for="courseFileInput" role="button" tabindex="0" style="display: flex; align-items: center; justify-content: center; gap: 8px; background: var(--accent-color, #1463ff); color: #fff; padding: 12px; border-radius: 8px; font-weight: bold; cursor: pointer; text-align: center; margin-bottom: 15px; border: none; width: 100%; box-sizing: border-box;">
+          <i class="fa-solid fa-cloud-arrow-up"></i>
+          <span>選擇課程檔案上傳</span>
+        </label>
+        <div class="thumb-grid" id="courseFiles"></div>
+      </section>
+
+      <section class="view" id="view-library">
+        <div class="panel-title">
+          <div>
+            <p class="eyebrow">檔案庫</p>
+            <h1 data-i18n="libraryTitle">智慧檔案庫</h1>
+          </div>
+        </div>
+
+        <label class="library-upload-btn" id="libraryDropZone" for="libraryFileInput" role="button" tabindex="0" style="display: flex; align-items: center; justify-content: center; gap: 8px; background: var(--accent-color, #1463ff); color: #fff; padding: 12px; border-radius: 8px; font-weight: bold; cursor: pointer; text-align: center; margin-bottom: 15px; border: none; width: 100%; box-sizing: border-box;">
+          <i class="fa-solid fa-cloud-arrow-up"></i>
+          <span>選擇手機檔案上傳</span>
+        </label>
+
+        <div class="library-list" id="libraryList"></div>
+      </section>
+
+      <section class="view" id="view-chat">
+        <div class="panel-title">
+          <div>
+            <p class="eyebrow">ClassOK AI</p>
+            <h1 data-i18n="chatTitle">AI 學習助手</h1>
+          </div>
+          <span class="status-pill" id="apiStatus">Demo</span>
+        </div>
+        <div class="chat-box">
+          <div class="messages" id="messages"></div>
+          <div class="suggestions" id="suggestions">
+            <button data-question="幫我整理這週需要複習的課程">這週複習</button>
+            <button data-question="幫我整理資料庫管理考試重點">考試重點</button>
+            <button data-question="幫我安排今天的學習計畫">今日計畫</button>
+          </div>
+          <form class="composer" id="chatForm">
+            <button type="button" id="chatVoiceButton" aria-label="Voice input"><i class="fa-solid fa-microphone"></i></button>
+            <input id="chatInput" autocomplete="off" placeholder="問 ClassOK..." />
+            <button type="submit" id="chatSendButton" aria-label="Send"><i class="fa-solid fa-paper-plane"></i></button>
+          </form>
+        </div>
+      </section>
+
+      <section class="view" id="view-profile">
+        <div class="profile-head">
+          <img src="assets/logo.svg" alt="" />
+          <div>
+            <p class="eyebrow">ClassOK</p>
+            <h1>我的學習中心</h1>
+            <span>課表驅動的 AI 學習知識管理平台</span>
+          </div>
+        </div>
+        <div class="profile-list">
+          <article><i class="fa-regular fa-user"></i><div><strong>Shelly</strong><span>個人化課程、檔案與 AI 記憶</span></div></article>
+          <article><i class="fa-regular fa-bell"></i><div><strong>提醒設定</strong><span>考試、Deadline、事件提醒</span></div></article>
+          <article class="academic-config-card" style="align-items: flex-start; display: flex; gap: 15px; padding: 16px; border-bottom: 1px solid var(--border-color, #e0e0e0); box-sizing: border-box; width: 100%;">
+            <i class="fa-solid fa-graduation-cap" style="font-size: 20px; color: var(--accent-color, #1463ff); margin-top: 3px;"></i>
+            <div style="flex: 1; display: flex; flex-direction: column; gap: 8px;">
+              <strong style="font-size: 16px;">學期與學制設定</strong>
+              <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                <div>
+                  <h3 id="termTitle" style="margin: 0; font-size: 14px; color: var(--text-color, #000);">2026 學期</h3>
+                  <span id="termHint" style="font-size: 12px; color: var(--text-muted, #666);">學期制</span>
+                </div>
+                <select id="academicSystem" aria-label="Academic system" style="padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border-color, #e0e0e0); background: var(--bg-card, #fff); color: var(--text-color, #000); font-size: 13px;">
+                  <option value="semester">學期制</option>
+                  <option value="trimester">三學期制</option>
+                  <option value="quarter">學季制</option>
+                  <option value="custom">自訂學制</option>
+                </select>
+              </div>
+            </div>
+          </article>
+          <article class="server-config-card" style="align-items: flex-start; display: flex; gap: 15px; padding: 16px; border-bottom: 1px solid var(--border-color, #e0e0e0);">
+            <i class="fa-solid fa-server" style="font-size: 20px; color: var(--accent-color, #1463ff); margin-top: 3px;"></i>
+            <div style="flex: 1; display: flex; flex-direction: column; gap: 8px;">
+              <strong style="font-size: 16px;">伺服器設定 (App 連線)</strong>
+              <div class="server-input-group" style="display: flex; flex-direction: column; gap: 8px; width: 100%;">
+                <input type="url" id="serverUrlInput" placeholder="http://您的電腦IP:4185" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color, #e0e0e0); background: var(--bg-card, #fff); color: var(--text-color, #000); font-size: 14px; box-sizing: border-box;" />
+                <button class="primary-button compact" id="saveServerUrl" style="width: 100%; padding: 10px; border-radius: 8px; font-weight: bold; background: var(--accent-color, #1463ff); color: #fff; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 5px;"><i class="fa-solid fa-floppy-disk"></i>儲存連線設定</button>
+              </div>
+            </div>
+          </article>
+        </div>
+      </section>
+    </main>
+
+    <nav class="bottom-nav">
+      <button class="nav-item active" data-view-target="home"><i class="fa-solid fa-house"></i><span data-i18n="navHome">首頁</span></button>
+      <button class="nav-item" data-view-target="schedule"><i class="fa-regular fa-calendar"></i><span data-i18n="navSchedule">課程</span></button>
+      <button class="nav-item" data-view-target="library"><i class="fa-regular fa-folder-open"></i><span data-i18n="navLibrary">檔案</span></button>
+      <button class="nav-item" data-view-target="chat"><i class="fa-regular fa-comment-dots"></i><span>AI</span></button>
+      <button class="nav-item" data-view-target="profile"><i class="fa-regular fa-user"></i><span>我的</span></button>
+    </nav>
+  </div>
+
+  <!-- Modal 1: 匯入學期課表 -->
+  <div class="modal hidden" id="importScheduleModal" role="dialog" aria-modal="true">
+    <div class="sheet">
+      <div class="sheet-head">
+        <h2>匯入學期課表</h2>
+        <button class="icon-button" id="closeImportSchedule"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <p style="font-size: 13px; color: var(--text-secondary, #666); margin-bottom: 10px;">請貼上您本學期每週固定的課表。這將為您建立每週重複的課程卡片與講義分類資料夾。</p>
+      
+      <div class="modal-tools" style="display: flex; gap: 8px; margin-bottom: 10px;">
+        <button class="soft-button compact" id="voiceBtnSchedule" type="button" style="flex: 1; font-size: 12px; padding: 8px;"><i class="fa-solid fa-microphone"></i>語音輸入</button>
+        <button class="soft-button compact" id="ocrBtnSchedule" type="button" style="flex: 1; font-size: 12px; padding: 8px;"><i class="fa-solid fa-camera"></i>圖片辨識</button>
+        <button class="soft-button compact" id="sampleBtnSchedule" type="button" style="flex: 1; font-size: 12px; padding: 8px;"><i class="fa-solid fa-wand-magic-sparkles"></i>範例課表</button>
+        <button class="soft-button compact" id="clearBtnSchedule" type="button" style="flex: 1; font-size: 12px; padding: 8px; color: var(--danger-color, #ff4d4f);"><i class="fa-solid fa-trash-can"></i>清空課表</button>
+      </div>
+
+      <textarea id="scheduleText" placeholder="例如：&#10;星期一 10:10-12:00 英文&#10;星期五 13:30-15:15 資訊管理實務專題二" style="width: 100%; height: 180px; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color, #e0e0e0); font-family: monospace; font-size: 13px; box-sizing: border-box; resize: none;"></textarea>
+      
+      <div class="split-actions" style="margin-top: 15px;">
+        <button class="primary-button full" id="confirmImportSchedule" type="button" style="width: 100%;"><i class="fa-solid fa-check"></i>確認匯入課表</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal 2: 匯入單次事件 -->
+  <div class="modal hidden" id="importEventsModal" role="dialog" aria-modal="true">
+    <div class="sheet">
+      <div class="sheet-head">
+        <h2>匯入單次行程事件</h2>
+        <button class="icon-button" id="closeImportEvents"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <p style="font-size: 13px; color: var(--text-secondary, #666); margin-bottom: 10px;">請貼上考試日期、報告Deadline、聚餐、比賽等行程。這將加在指定的單次日期時間軸中。</p>
+      
+      <div class="modal-tools" style="display: flex; gap: 8px; margin-bottom: 10px;">
+        <button class="soft-button compact" id="voiceBtnEvents" type="button" style="flex: 1; font-size: 12px; padding: 8px;"><i class="fa-solid fa-microphone"></i>語音輸入</button>
+        <button class="soft-button compact" id="ocrBtnEvents" type="button" style="flex: 1; font-size: 12px; padding: 8px;"><i class="fa-solid fa-camera"></i>圖片辨識</button>
+        <button class="soft-button compact" id="sampleBtnEvents" type="button" style="flex: 1; font-size: 12px; padding: 8px;"><i class="fa-solid fa-wand-magic-sparkles"></i>範例行程</button>
+        <button class="soft-button compact" id="clearBtnEvents" type="button" style="flex: 1; font-size: 12px; padding: 8px; color: var(--danger-color, #ff4d4f);"><i class="fa-solid fa-trash-can"></i>清空行程</button>
+      </div>
+
+      <textarea id="eventsText" placeholder="例如：&#10;禮拜四 19:00-21:00 朋友聚餐&#10;禮拜六 09:00-11:00 統計學期中考" style="width: 100%; height: 180px; padding: 10px; border-radius: 8px; border: 1px solid var(--border-color, #e0e0e0); font-family: monospace; font-size: 13px; box-sizing: border-box; resize: none;"></textarea>
+      
+      <div class="split-actions" style="margin-top: 15px;">
+        <button class="primary-button full" id="confirmImportEvents" type="button" style="width: 100%; background: var(--secondary-color, #17bdb8);"><i class="fa-solid fa-check"></i>確認匯入行程</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="modal hidden" id="infoModal" role="dialog" aria-modal="true">
+    <div class="sheet info-sheet">
+      <div class="sheet-head">
+        <h2 data-i18n="scheduleInfoTitle">時間表說明</h2>
+        <button class="icon-button" id="closeInfo" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <p data-i18n="scheduleInfo">可以匯入課程、生活休閒、比賽、證照與考試日期；ClassOK 會自動列入時間表，並把課程相關資料集中到課程卡片。</p>
+      <button class="primary-button full" id="confirmInfo" type="button" data-i18n="infoClose">我知道了</button>
+    </div>
+  </div>
+
+  <input class="file-input-hidden" id="ocrInput" type="file" accept="image/*,.pdf" />
+  <input class="file-input-hidden" id="libraryFileInput" type="file" multiple />
+  <input class="file-input-hidden" id="courseFileInput" type="file" multiple />
+  <div class="preview-modal hidden" id="previewModal">
+    <button class="preview-close" id="previewClose" aria-label="Close preview"><i class="fa-solid fa-xmark"></i></button>
+    <div class="preview-card" id="previewCard"></div>
+  </div>
+  <div class="toast hidden" id="toast"></div>
+  <script src="capacitor.js"></script>
+  <script src="app.js?v=18"></script>
+</body>
+</html>

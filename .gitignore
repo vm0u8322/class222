@@ -1,0 +1,16 @@
+.env
+__pycache__/
+*.pyc
+*.pyo
+*.log
+*.bak
+
+recovery-backup-*/
+rewrite-backup-*/
+wrong-classok-backup-*/
+
+node_modules/
+dist/
+.DS_Store
+Thumbs.db
+*.db
